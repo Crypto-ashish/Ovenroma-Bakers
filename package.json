@@ -1,0 +1,26 @@
+{
+  "name": "ovenroma-bakers",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Ovenroma Bakers — e-commerce storefront, bulk orders, hampers and admin on Cloudflare Workers + D1",
+  "license": "UNLICENSED",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev --port 8787",
+    "db:migrate:local": "wrangler d1 migrations apply ovenroma-db --local",
+    "db:migrate:remote": "wrangler d1 migrations apply ovenroma-db --remote",
+    "seed:gen": "node scripts/gen-seed.mjs",
+    "hash-password": "node scripts/hash-password.mjs",
+    "deploy": "wrangler deploy",
+    "test": "npm run test:unit && npm run test:e2e",
+    "test:unit": "node --no-warnings --test tests/unit/*.test.js",
+    "test:e2e": "playwright test --trace off"
+  },
+  "dependencies": {
+    "@noble/hashes": "1.8.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "wrangler": "4.156.0"
+  }
+}

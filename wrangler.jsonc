@@ -1,0 +1,44 @@
+{
+  "name": "ovenroma-bakers",
+  "main": "src/index.js",
+  "compatibility_date": "2025-01-01",
+  // Public, non-secret configuration. Secrets (RAZORPAY_KEY_SECRET,
+  // RAZORPAY_WEBHOOK_SECRET, ADMIN_PASSWORD_HASH) are set with
+  // `wrangler secret put <NAME>` — never here.
+  "vars": {
+    // Razorpay publishable key id. Start with a TEST key (rzp_test_…).
+    "RAZORPAY_KEY_ID": "",
+    // Canonical site origin for canonical tags, sitemap and Open Graph, e.g.
+    // "https://www.example.com". Empty = use the request's own origin.
+    "SITE_URL": "",
+    "ADMIN_USERNAME": "admin",
+    // Optional: public URL of the R2 bucket's custom domain (e.g.
+    // "https://media.example.com"). Empty = images served via /media/.
+    "MEDIA_PUBLIC_URL": ""
+  },
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "run_worker_first": true
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "ovenroma-db",
+      // Replace with the id printed by `wrangler d1 create ovenroma-db`.
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "r2_buckets": [
+    { "binding": "MEDIA", "bucket_name": "ovenroma-media" }
+  ],
+  // Abuse protection for checkout, enquiries and admin login:
+  // at most 10 requests per minute per visitor IP for each endpoint.
+  "ratelimits": [
+    { "name": "API_LIMITER", "namespace_id": "2001", "simple": { "limit": 10, "period": 60 } }
+  ],
+  // Exposes the deployment id, used to cache-bust CSS/JS URLs.
+  "version_metadata": { "binding": "CF_VERSION_METADATA" },
+  "observability": { "enabled": true }
+}
