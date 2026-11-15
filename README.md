@@ -98,9 +98,10 @@ build command `npm ci`, deploy command `npm run deploy`.
 Then (once):
 1. Worker → Settings → Variables and Secrets → add **Secret** `ADMIN_PASSWORD_HASH`
    (create with `npm run hash-password -- 'your password'`). Optional: `RAZORPAY_KEY_SECRET` (test secret first)
-   and `RAZORPAY_KEY_ID` (`rzp_test_…`) as a variable, `RAZORPAY_WEBHOOK_SECRET`.
+   and `RAZORPAY_KEY_ID` (`rzp_test_…`) as a plain variable, `RAZORPAY_WEBHOOK_SECRET`.
+   These are kept across deploys (`keep_vars`), so set them in the dashboard, not in `wrangler.jsonc`.
 2. In `/admin` → Settings, set the WhatsApp number and prices.
-3. Custom domain later: Worker → Settings → Domains & Routes → Add custom domain, and set `SITE_URL`.
+3. Custom domain later: Worker → Settings → Domains & Routes → Add custom domain, then add a variable `SITE_URL` (e.g. `https://www.example.com`).
 4. Submit `https://<domain>/sitemap.xml` in Google Search Console.
 
 ## Project layout

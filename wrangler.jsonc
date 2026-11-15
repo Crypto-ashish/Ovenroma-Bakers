@@ -2,15 +2,14 @@
   "name": "ovenroma-bakers",
   "main": "src/index.js",
   "compatibility_date": "2025-01-01",
-  // Public, non-secret configuration. Secrets (RAZORPAY_KEY_SECRET,
-  // RAZORPAY_WEBHOOK_SECRET, ADMIN_PASSWORD_HASH) are set with
-  // `wrangler secret put <NAME>` — never here.
+  // Configuration lives in the Cloudflare dashboard (Worker → Settings →
+  // Variables and Secrets) and is kept across deploys (keep_vars):
+  //   Secrets:   ADMIN_PASSWORD_HASH, RAZORPAY_KEY_SECRET, RAZORPAY_WEBHOOK_SECRET
+  //   Variables: RAZORPAY_KEY_ID (rzp_test_… first), SITE_URL (e.g. https://www.example.com)
+  // Nothing set = online payment off (WhatsApp ordering still works) and the
+  // site uses its own address for canonical links.
+  "keep_vars": true,
   "vars": {
-    // Razorpay publishable key id. Start with a TEST key (rzp_test_…).
-    "RAZORPAY_KEY_ID": "",
-    // Canonical site origin for canonical tags, sitemap and Open Graph, e.g.
-    // "https://www.example.com". Empty = use the request's own origin.
-    "SITE_URL": "",
     "ADMIN_USERNAME": "admin"
   },
   "assets": {
