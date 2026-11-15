@@ -7,8 +7,8 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler dev --port 8787",
-    "db:migrate:local": "wrangler d1 migrations apply ovenroma-db --local",
-    "db:migrate:remote": "wrangler d1 migrations apply ovenroma-db --remote",
+    "db:migrate:local": "wrangler d1 migrations apply ovenromabakers --local",
+    "db:migrate:remote": "wrangler d1 migrations apply ovenromabakers --remote",
     "seed:gen": "node scripts/gen-seed.mjs",
     "hash-password": "node scripts/hash-password.mjs",
     "deploy": "wrangler deploy",

@@ -229,6 +229,7 @@ export const PRODUCTS = [
     packaging: "Clear Box",
     weight: "100g",
     price: 280,
+    description: "Crunchy, hollow gluten-free pani puri shells packed in a protective clear container. Prepared without wheat — just add your favourite pani and filling.",
   }),
 
   // --- Gluten-free flours (catalogue 3) ---------------------------------------

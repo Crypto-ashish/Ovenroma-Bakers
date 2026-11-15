@@ -1,5 +1,5 @@
 {
-  "name": "ovenroma-bakers",
+  "name": "ovenromabakers",
   "main": "src/index.js",
   "compatibility_date": "2025-01-01",
   // Public, non-secret configuration. Secrets (RAZORPAY_KEY_SECRET,
@@ -24,14 +24,13 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "ovenroma-db",
-      // Replace with the id printed by `wrangler d1 create ovenroma-db`.
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_name": "ovenromabakers",
+      "database_id": "46ba8f05-b88a-4e21-9c77-61e2d247bf13",
       "migrations_dir": "migrations"
     }
   ],
   "r2_buckets": [
-    { "binding": "MEDIA", "bucket_name": "ovenroma-media" }
+    { "binding": "MEDIA", "bucket_name": "ovenromabakers" }
   ],
   // Abuse protection for checkout, enquiries and admin login:
   // at most 10 requests per minute per visitor IP for each endpoint.

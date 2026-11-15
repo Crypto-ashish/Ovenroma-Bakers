@@ -70,20 +70,36 @@ and remove `RAZORPAY_API_BASE`.
 
 ## Deploying to Cloudflare
 
-```bash
-npx wrangler d1 create ovenroma-db          # copy the database_id into wrangler.jsonc
-npx wrangler r2 bucket create ovenroma-media
-npm run db:migrate:remote
-npx wrangler secret put ADMIN_PASSWORD_HASH  # from npm run hash-password
-npx wrangler secret put RAZORPAY_KEY_SECRET  # Razorpay TEST secret first
-npx wrangler secret put RAZORPAY_WEBHOOK_SECRET   # optional
-npm run deploy
-```
+Cloudflare account: **Glutenfreedelhiofficial@gmail.com's Account**, Worker name **`ovenromabakers`**.
 
-Then in `wrangler.jsonc` set `RAZORPAY_KEY_ID` (test key first) and `SITE_URL` (your domain), redeploy,
-and in the admin set the WhatsApp number. Optional: add a Razorpay webhook to
-`https://<domain>/api/razorpay-webhook` for `payment.captured`, `order.paid` and `payment.failed`.
-Submit `https://<domain>/sitemap.xml` in Google Search Console.
+Already done:
+- D1 database **`ovenromabakers`** (id `46ba8f05-b88a-4e21-9c77-61e2d247bf13`, APAC) created, with the
+  schema and catalogue loaded (both migrations recorded, so `npm run db:migrate:remote` is a no-op).
+- `wrangler.jsonc` points at it.
+
+Still to do (once, from a machine logged in with `npx wrangler login`):
+
+1. **Enable R2** in the Cloudflare dashboard (R2 Object Storage → enable; the free tier is enough), then
+   create the bucket used for admin photo uploads:
+   ```bash
+   npx wrangler r2 bucket create ovenromabakers
+   ```
+2. **Secrets**:
+   ```bash
+   npm run hash-password -- 'a long, unique admin password'
+   npx wrangler secret put ADMIN_PASSWORD_HASH
+   npx wrangler secret put RAZORPAY_KEY_SECRET        # Razorpay TEST secret first
+   npx wrangler secret put RAZORPAY_WEBHOOK_SECRET    # optional
+   ```
+3. Set `RAZORPAY_KEY_ID` (your `rzp_test_…` key) in `wrangler.jsonc`, then deploy:
+   ```bash
+   npm run deploy
+   ```
+   The site will be at `https://ovenromabakers.<your-subdomain>.workers.dev`. To use your own domain, add
+   it under Workers → ovenromabakers → Settings → Domains & Routes and set `SITE_URL` in `wrangler.jsonc`.
+4. In `/admin` → Settings, set the WhatsApp number. Optionally add a Razorpay webhook to
+   `https://<domain>/api/razorpay-webhook` (`payment.captured`, `order.paid`, `payment.failed`).
+5. Submit `https://<domain>/sitemap.xml` in Google Search Console.
 
 To go live with payments, swap the test key id/secret for the live ones.
 
