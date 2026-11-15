@@ -70,7 +70,7 @@ and remove `RAZORPAY_API_BASE`.
 
 ## Deploying to Cloudflare
 
-Cloudflare account: **Glutenfreedelhiofficial@gmail.com's Account**, Worker name **`ovenromabakers`**.
+Cloudflare account: **Glutenfreedelhiofficial@gmail.com's Account**, Worker name **`ovenroma-bakers`** (created in the dashboard).
 
 Already done:
 - D1 database **`ovenromabakers`** (id `46ba8f05-b88a-4e21-9c77-61e2d247bf13`, APAC) created, with the
@@ -95,8 +95,8 @@ Still to do (once, from a machine logged in with `npx wrangler login`):
    ```bash
    npm run deploy
    ```
-   The site will be at `https://ovenromabakers.<your-subdomain>.workers.dev`. To use your own domain, add
-   it under Workers → ovenromabakers → Settings → Domains & Routes and set `SITE_URL` in `wrangler.jsonc`.
+   The site will be at `https://ovenroma-bakers.<your-subdomain>.workers.dev`. To use your own domain, add
+   it under Workers → ovenroma-bakers → Settings → Domains & Routes and set `SITE_URL` in `wrangler.jsonc`.
 4. In `/admin` → Settings, set the WhatsApp number. Optionally add a Razorpay webhook to
    `https://<domain>/api/razorpay-webhook` (`payment.captured`, `order.paid`, `payment.failed`).
 5. Submit `https://<domain>/sitemap.xml` in Google Search Console.

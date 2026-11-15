@@ -1,5 +1,5 @@
 {
-  "name": "ovenromabakers",
+  "name": "ovenroma-bakers",
   "main": "src/index.js",
   "compatibility_date": "2025-01-01",
   // Public, non-secret configuration. Secrets (RAZORPAY_KEY_SECRET,
