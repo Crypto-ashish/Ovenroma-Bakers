@@ -135,6 +135,7 @@ document.addEventListener("click", (e) => {
   }
   addItem(data, { variant, qty, options });
   if (buy) { location.href = "/checkout"; return; }
+  document.dispatchEvent(new CustomEvent("cart:added", { detail: { source: container } }));
   toast(qty + " × " + data.name + " added to cart", { link: { href: "/cart", label: "View cart" } });
   const qtyInput = container.querySelector("[data-qty] input");
   if (qtyInput) qtyInput.value = "1";
@@ -142,11 +143,4 @@ document.addEventListener("click", (e) => {
 
 bindSteppers();
 
-// ---- reveal-on-scroll
-if ("IntersectionObserver" in window && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
-  document.documentElement.classList.add("js-reveal");
-  const io = new IntersectionObserver((entries) => {
-    for (const en of entries) if (en.isIntersecting) { en.target.classList.add("is-in"); io.unobserve(en.target); }
-  }, { rootMargin: "0px 0px -8% 0px" });
-  document.querySelectorAll(".reveal").forEach((el) => io.observe(el));
-}
+// Scroll reveals, tilt, parallax and other motion live in motion.js.

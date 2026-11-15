@@ -57,11 +57,12 @@ function assetCache(path, search) {
 }
 
 // ---------------------------------------------------------------- page context
-async function makeCtx(env, url) {
+async function makeCtx(env, url, request) {
   const [settings, categories] = await Promise.all([getSettings(env), listCategories(env)]);
   const origin = (env.SITE_URL || "").replace(/\/+$/, "") || url.origin;
   const assetV = (env.CF_VERSION_METADATA && env.CF_VERSION_METADATA.id ? env.CF_VERSION_METADATA.id : env.ASSET_VERSION || "dev").slice(0, 12);
-  return { env, url, settings, categories, origin, assetV };
+  const introSeen = /(?:^|;\s*)ovr_intro=1(?:;|$)/.test((request && request.headers.get("Cookie")) || "");
+  return { env, url, settings, categories, origin, assetV, introSeen };
 }
 
 function htmlResponse(ctx, page, status = 200) {
@@ -76,19 +77,22 @@ async function notFound(ctx) {
 }
 
 // ---------------------------------------------------------------- SSR routes
-async function renderPage(env, url) {
-  const ctx = await makeCtx(env, url);
+async function renderPage(env, url, request) {
+  const ctx = await makeCtx(env, url, request);
   const path = url.pathname.replace(/\/+$/, "") || "/";
 
   if (path === "/") {
-    const [featured, hampers, testimonials, heroes, promos] = await Promise.all([
-      listProducts(env, { featured: true, excludeHampers: true }),
+    const [all, hampers, testimonials, heroes, promos] = await Promise.all([
+      listProducts(env, { excludeHampers: true }),
       listProducts(env, { category: "festival-hampers" }),
       listTestimonials(env),
       listBanners(env, "hero"),
       listBanners(env, "promo"),
     ]);
-    return htmlResponse(ctx, pages.homePage(ctx, { featured: featured.slice(0, 8), hampers, testimonials, heroBanner: heroes[0], promo: promos[0] }));
+    const featured = all.filter((p) => p.featured).slice(0, 8);
+    const count = (cat) => all.filter((p) => p.category === cat).length;
+    const stats = { products: all.length + hampers.length, cookies: count("biscuits-cookies"), flours: count("gluten-free-flours"), hampers: hampers.length };
+    return htmlResponse(ctx, pages.homePage(ctx, { featured, hampers, testimonials, heroBanner: heroes[0], promo: promos[0], stats }));
   }
   if (path === "/shop") {
     const products = await listProducts(env, { excludeHampers: true });
@@ -301,7 +305,7 @@ export default {
       if (url.pathname.length > 1 && url.pathname.endsWith("/")) {
         return Response.redirect(url.origin + url.pathname.replace(/\/+$/, "") + url.search, 301);
       }
-      const res = await renderPage(env, url);
+      const res = await renderPage(env, url, request);
       const noindex = url.pathname === "/admin" || res.status === 404;
       return secure(res, url, env, { html: true, noindex });
     } catch (e) {

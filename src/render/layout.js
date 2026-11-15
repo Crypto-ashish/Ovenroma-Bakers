@@ -109,6 +109,20 @@ function footer(ctx) {
   <div class="toast-wrap" aria-live="polite" data-toasts></div>`;
 }
 
+// 1-second brand intro shown on the first homepage visit (a cookie set by
+// motion.js hides it afterwards). Pure CSS: it never blocks clicks.
+function intro() {
+  return html`<div class="intro" aria-hidden="true" data-intro>
+    <div class="intro-inner">
+      <span class="intro-steam"><i></i><i></i><i></i></span>
+      <span class="intro-mark">${raw('<svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="19" fill="#2a180d" stroke="#C9A45C" stroke-width="1"/><path d="M11 23c0-5 4-9 9-9s9 4 9 9" fill="none" stroke="#E8C98A" stroke-width="2.2" stroke-linecap="round"/><path d="M9 23h22" stroke="#E8C98A" stroke-width="2.2" stroke-linecap="round"/><text x="20" y="31.5" text-anchor="middle" font-family="Georgia,serif" font-size="7" fill="#E8C98A" letter-spacing="1">OB</text></svg>')}</span>
+      <span class="intro-name">${"OVENROMA".split("").map((ch, i) => html`<span style="--i:${i}">${ch}</span>`)}</span>
+      <span class="intro-sub">Bakers</span>
+      <span class="intro-tag">Freshly Baked Happiness</span>
+    </div>
+  </div>`;
+}
+
 /**
  * @param ctx   request context { url, origin, settings, categories, assetV }
  * @param page  { title, description, path, image, body, jsonLd[], scripts[], noindex, bodyClass, status }
@@ -148,10 +162,13 @@ ${ld.map((o) => jsonLd(o))}
 </head>
 <body class="${page.bodyClass || ""}" data-wa="${(store.whatsapp || "").replace(/\D/g, "")}">
 ${header(ctx)}
+${page.intro && !ctx.introSeen ? intro() : ""}
+<div class="scroll-progress" aria-hidden="true" data-scroll-progress></div>
 <main id="main" tabindex="-1">${page.body}</main>
 ${footer(ctx)}
 ${cartDrawer()}
 <script type="module" src="/assets/js/main.js?v=${v}"></script>
+<script type="module" src="/assets/js/motion.js?v=${v}"></script>
 ${(page.scripts || []).map((s) => html`<script type="module" src="${s}?v=${v}"></script>`)}
 </body>
 </html>`;

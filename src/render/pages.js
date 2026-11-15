@@ -32,7 +32,7 @@ export function organizationLd(ctx) {
 }
 
 // --------------------------------------------------------------------------- Home
-export function homePage(ctx, { featured, hampers, testimonials, heroBanner, promo }) {
+export function homePage(ctx, { featured, hampers, testimonials, heroBanner, promo, stats = {} }) {
   const home = ctx.settings.home;
   const title = (heroBanner && heroBanner.title) || home.hero_title || "Freshly Baked. Beautifully Crafted. Made with Love.";
   const subtitle = (heroBanner && heroBanner.subtitle) || home.hero_subtitle;
@@ -57,10 +57,12 @@ export function homePage(ctx, { featured, hampers, testimonials, heroBanner, pro
   const wa = ctx.settings.store.whatsapp;
   const body = html`
   <section class="hero">
+    <div class="hero-blobs" aria-hidden="true"><span></span><span></span><span></span></div>
+    <div class="hero-particles" aria-hidden="true">${["wheat", "chip", "sparkle", "chip", "wheat", "sparkle", "chip", "sparkle", "wheat", "chip"].map((k, i) => html`<span class="pt pt-${k}" style="--i:${i}"></span>`)}</div>
     <div class="container hero-grid">
-      <div class="hero-copy reveal">
+      <div class="hero-copy">
         <p class="script">Freshly baked happiness</p>
-        <h1 class="hero-title">${title}</h1>
+        <h1 class="hero-title" aria-label="${title}">${title.split(/\s+/).map((w, i) => html`<span class="w" aria-hidden="true"><span style="--i:${i}">${w}</span></span> `)}</h1>
         <p class="hero-sub">${subtitle}</p>
         <div class="hero-ctas">
           <a class="btn btn-primary btn-lg" href="${(heroBanner && heroBanner.cta_url) || "/shop"}">${(heroBanner && heroBanner.cta_label) || "Shop Now"} ${icon("arrow")}</a>
@@ -72,20 +74,22 @@ export function homePage(ctx, { featured, hampers, testimonials, heroBanner, pro
           <li>${icon("wheat")} Gluten-Free Range</li>
         </ul>
       </div>
-      <div class="hero-art reveal" aria-hidden="false">
-        <figure class="hero-main"><img src="${heroImg}" width="800" height="800" alt="Ovenroma Bakers assorted muffin gift box with honey almond, tutti frutti and vanilla muffins" fetchpriority="high"></figure>
-        <figure class="hero-float hero-float-a"><img src="/assets/images/products/amritsari-kulcha-400.webp" width="400" height="400" alt="Ovenroma Bakers Amritsari Kulcha pack, 4 pieces 320g" loading="lazy"><figcaption>Amritsari Kulcha</figcaption></figure>
-        <figure class="hero-float hero-float-b"><img src="/assets/images/products/chocochip-cookies-400.webp" width="400" height="400" alt="Ovenroma Bakers Chocochip Cookies in a clear box" loading="lazy"><figcaption>Chocochip Cookies</figcaption></figure>
+      <div class="hero-art" data-parallax>
+        <figure class="hero-main" data-depth="0.5"><img src="${heroImg}" width="800" height="800" alt="Ovenroma Bakers assorted muffin gift box with honey almond, tutti frutti and vanilla muffins" fetchpriority="high"></figure>
+        <figure class="hero-float hero-float-a" data-depth="1.6"><img src="/assets/images/products/amritsari-kulcha-400.webp" width="400" height="400" alt="Ovenroma Bakers Amritsari Kulcha pack, 4 pieces 320g" loading="lazy"><figcaption>Amritsari Kulcha</figcaption></figure>
+        <figure class="hero-float hero-float-b" data-depth="-1.3"><img src="/assets/images/products/chocochip-cookies-400.webp" width="400" height="400" alt="Ovenroma Bakers Chocochip Cookies in a clear box" loading="lazy"><figcaption>Chocochip Cookies</figcaption></figure>
         <span class="hero-stamp" aria-hidden="true"><span>Baked</span><strong>Fresh</strong><span>Daily</span></span>
       </div>
     </div>
   </section>
 
+  <div class="ticker" aria-hidden="true"><div class="ticker-track">${[0, 1].map(() => html`<span>${["100% Vegetarian", "Freshly Baked Every Day", "Gluten-Free Range", "Eggless Cookies", "Amritsari Kulcha", "Langar & Bhandara Bulk Orders", "Festival Gift Hampers", "Order on WhatsApp"].map((t) => html`<em>${t}</em><b>✦</b>`)}</span>`)}</div></div>
+
   <section class="section">
     <div class="container">
       ${sectionHead({ kicker: "Explore", title: "Shop by Category", sub: "From tea-time cookies to festive hampers — find something for every occasion." })}
-      <ul class="cat-tiles">
-        ${tiles.map((t) => html`<li class="reveal"><a class="cat-tile" href="${t.url}">
+      <ul class="cat-tiles" data-stagger>
+        ${tiles.map((t) => html`<li class="reveal"><a class="cat-tile tilt" href="${t.url}">
           <span class="cat-img"><img src="${thumbOf(t.img)}" width="400" height="400" alt="${t.name} by Ovenroma Bakers" loading="lazy"></span>
           <span class="cat-name">${t.name}</span><span class="cat-note">${t.note}</span>
         </a></li>`)}
@@ -96,7 +100,7 @@ export function homePage(ctx, { featured, hampers, testimonials, heroBanner, pro
   <section class="section section-tint">
     <div class="container">
       ${sectionHead({ kicker: "Customer favourites", title: "Best Sellers", sub: "Our most-loved bakes, straight from the Ovenroma ovens." })}
-      <div class="product-grid">${featured.map((p) => productCard(p, ctx))}</div>
+      <div class="product-grid" data-stagger>${featured.map((p) => productCard(p, ctx))}</div>
       <div class="center mt-lg"><a class="btn btn-outline" href="/shop">View all products ${icon("arrow")}</a></div>
     </div>
   </section>
@@ -104,9 +108,20 @@ export function homePage(ctx, { featured, hampers, testimonials, heroBanner, pro
   <section class="section">
     <div class="container">
       ${sectionHead({ kicker: "Why Ovenroma", title: "Our Speciality" })}
-      <ul class="speciality">
+      <ul class="speciality" data-stagger>
         ${specialities.map((s) => html`<li class="reveal"><span class="spec-icon">${icon(s.icon)}</span><h3>${s.title}</h3><p>${s.text}</p></li>`)}
       </ul>
+    </div>
+  </section>
+
+  <section class="stats-band" aria-label="Ovenroma Bakers at a glance">
+    <div class="container stats-grid" data-stagger>
+      ${[
+        [stats.products, "+", "Bakery products & hampers"],
+        [stats.cookies, "", "Eggless cookie varieties"],
+        [stats.flours, "", "Gluten-free flours & atta"],
+        [100, "%", "Vegetarian, always"],
+      ].filter(([n]) => n).map(([n, suf, label]) => html`<div class="stat reveal"><strong><span data-count="${n}">${n}</span>${suf}</strong><span>${label}</span></div>`)}
     </div>
   </section>
 
@@ -116,8 +131,8 @@ export function homePage(ctx, { featured, hampers, testimonials, heroBanner, pro
         <p class="script light">Langar &amp; Bhandara</p>
         <h2>${(promo && promo.title) || "Making Every Celebration More Special."}</h2>
         <p>${(promo && promo.subtitle) || "Freshly prepared bakery products at affordable bulk-order prices."}</p>
-        <ul class="price-chips">
-          ${(bulk.products || []).map((b) => html`<li><span>${b.name}</span><strong>${rupees(b.price_paise)}<small> / ${b.unit}</small></strong></li>`)}
+        <ul class="price-chips" data-stagger>
+          ${(bulk.products || []).map((b) => html`<li class="reveal"><span>${b.name}</span><strong>${rupees(b.price_paise)}<small> / ${b.unit}</small></strong></li>`)}
         </ul>
         <a class="btn btn-gold btn-lg" href="${(promo && promo.cta_url) || "/langar-bhandara-bulk-orders"}">${(promo && promo.cta_label) || "Order for Langar & Bhandara"} ${icon("arrow")}</a>
       </div>
@@ -132,7 +147,7 @@ export function homePage(ctx, { featured, hampers, testimonials, heroBanner, pro
   <section class="section hampers-teaser">
     <div class="container">
       ${sectionHead({ kicker: "Gifting", title: "Festival Hampers", sub: "Premium gift boxes and festive baskets, beautifully packed and fully customisable." })}
-      <div class="hamper-strip">
+      <div class="hamper-strip" data-stagger>
         ${hampers.slice(0, 4).map((h) => html`<a class="hamper-mini reveal" href="/festival-hampers#${h.occasion}">
           <span class="hm-img">${productImg(h, { sizes: "(max-width: 640px) 80vw, 280px" })}</span>
           <span class="hm-body"><span class="hm-name">${h.name}</span><span class="hm-inc">${(h.includes || []).slice(0, 2).join(" • ")}</span>${priceLabel(h)}</span>
@@ -154,7 +169,7 @@ export function homePage(ctx, { featured, hampers, testimonials, heroBanner, pro
 
   <section class="section">
     <div class="container">
-      <div class="wa-cta reveal">
+      <div class="wa-cta reveal"><span class="wa-cta-glow" aria-hidden="true"></span>
         <div><p class="script">Quick &amp; easy</p><h2>Order on WhatsApp</h2><p>Tell us what you'd like — single packs, party orders, hampers or bulk seva orders — and our team will confirm availability, delivery and the final amount.</p></div>
         <a class="btn btn-wa btn-lg" href="${waLink(wa, "Hello Ovenroma Bakers! I'd like to place an order.")}" target="_blank" rel="noopener">${icon("whatsapp")}<span>Chat with us on WhatsApp</span></a>
       </div>
@@ -166,6 +181,7 @@ export function homePage(ctx, { featured, hampers, testimonials, heroBanner, pro
     description: seo.description,
     path: "/",
     preload: heroImg,
+    intro: true,
     body,
     jsonLd: [organizationLd(ctx), { "@context": "https://schema.org", "@type": "WebSite", name: "Ovenroma Bakers", url: ctx.origin + "/" }],
   };

@@ -79,7 +79,7 @@ export function productCard(p, ctx, { headingLevel = 3 } = {}) {
   const buyable = isBuyable(p);
   const H = raw("h" + headingLevel);
   const enquiry = `Hello Ovenroma Bakers! I'd like to enquire about ${p.name}${p.weight ? " (" + p.weight + ")" : ""}. ${ctx.origin}${url}`;
-  return html`<article class="product-card${p.in_stock ? "" : " is-oos"}" data-product="${p.slug}" data-category="${p.category}" data-tags="${(p.tags || []).join(" ")}" data-price="${p.price_paise ?? ""}" data-name="${p.name.toLowerCase()}" data-instock="${p.in_stock ? 1 : 0}" data-sort="${p.sort}">
+  return html`<article class="product-card tilt reveal${p.in_stock ? "" : " is-oos"}" data-product="${p.slug}" data-category="${p.category}" data-tags="${(p.tags || []).join(" ")}" data-price="${p.price_paise ?? ""}" data-name="${p.name.toLowerCase()}" data-instock="${p.in_stock ? 1 : 0}" data-sort="${p.sort}">
     <a class="pc-media" href="${url}" tabindex="-1" aria-hidden="true">
       ${productImg(p)}
       <span class="pc-badges">${badges(p)}</span>
@@ -124,7 +124,7 @@ export function breadcrumbLd(items, origin) {
 
 export function sectionHead({ kicker, title, sub, id, center = true, level = 2 }) {
   const H = raw("h" + level);
-  return html`<header class="section-head${center ? " center" : ""}">
+  return html`<header class="section-head reveal${center ? " center" : ""}">
     ${kicker ? html`<p class="kicker">${kicker}</p>` : ""}
     <${H} class="section-title"${id ? raw(` id="${id}"`) : ""}>${title}</${H}>
     ${sub ? html`<p class="section-sub">${sub}</p>` : ""}
