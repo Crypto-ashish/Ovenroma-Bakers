@@ -12,7 +12,7 @@
     "db:migrate:remote": "wrangler d1 migrations apply ovenromabakers --remote",
     "seed:gen": "node scripts/gen-seed.mjs",
     "hash-password": "node scripts/hash-password.mjs",
-    "deploy": "npm run build && wrangler deploy",
+    "deploy": "npm run build && wrangler deploy && wrangler d1 migrations apply ovenromabakers --remote",
     "test": "npm run test:unit && npm run test:e2e",
     "test:unit": "node --no-warnings --test tests/unit/*.test.js",
     "test:e2e": "playwright test --trace off",

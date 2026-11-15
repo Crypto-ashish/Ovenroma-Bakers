@@ -85,36 +85,23 @@ and remove `RAZORPAY_API_BASE`.
 
 ## Deploying to Cloudflare
 
-Cloudflare account: **Glutenfreedelhiofficial@gmail.com's Account**, Worker name **`ovenroma-bakers`** (created in the dashboard).
+Worker name **`ovenroma-bakers`**, D1 database **`ovenromabakers`**. `wrangler.jsonc` deliberately has
+no `database_id`: wrangler finds the database by name in whichever account it deploys to, and creates it
+on the first deploy. `npm run deploy` builds, deploys, then applies database migrations (tables + catalogue).
 
-Already done:
-- D1 database **`ovenromabakers`** (id `46ba8f05-b88a-4e21-9c77-61e2d247bf13`, APAC) created, with the
-  schema and catalogue loaded (both migrations recorded, so `npm run db:migrate:remote` is a no-op).
-- `wrangler.jsonc` points at it.
+**Option A — Cloudflare dashboard (Workers Builds):** Workers & Pages → Create → Import a repository →
+`Crypto-ashish/ovenroma-bakers`, branch `claude/dazzling-ritchie-tqpeka`, Worker name `ovenroma-bakers`,
+build command `npm ci`, deploy command `npm run deploy`.
 
-Still to do (once, from a machine logged in with `npx wrangler login`):
+**Option B — your computer:** `npx wrangler login`, then `npm run deploy`.
 
-1. **Secrets**:
-   ```bash
-   npm run hash-password -- 'a long, unique admin password'
-   npx wrangler secret put ADMIN_PASSWORD_HASH
-   npx wrangler secret put RAZORPAY_KEY_SECRET        # Razorpay TEST secret first
-   npx wrangler secret put RAZORPAY_WEBHOOK_SECRET    # optional
-   ```
-2. Set `RAZORPAY_KEY_ID` (your `rzp_test_…` key) in `wrangler.jsonc`, then deploy:
-   ```bash
-   npm run deploy
-   ```
-   Or connect the repo in **Workers → Import a repository** (Workers Builds) with
-   build command `npm ci && npm run build` and deploy command
-   `npx wrangler d1 migrations apply ovenromabakers --remote && npx wrangler deploy`.
-   The site will be at `https://ovenroma-bakers.<your-subdomain>.workers.dev`. To use your own domain, add
-   it under Workers → ovenroma-bakers → Settings → Domains & Routes and set `SITE_URL` in `wrangler.jsonc`.
-3. In `/admin` → Settings, set the WhatsApp number. Optionally add a Razorpay webhook to
-   `https://<domain>/api/razorpay-webhook` (`payment.captured`, `order.paid`, `payment.failed`).
+Then (once):
+1. Worker → Settings → Variables and Secrets → add **Secret** `ADMIN_PASSWORD_HASH`
+   (create with `npm run hash-password -- 'your password'`). Optional: `RAZORPAY_KEY_SECRET` (test secret first)
+   and `RAZORPAY_KEY_ID` (`rzp_test_…`) as a variable, `RAZORPAY_WEBHOOK_SECRET`.
+2. In `/admin` → Settings, set the WhatsApp number and prices.
+3. Custom domain later: Worker → Settings → Domains & Routes → Add custom domain, and set `SITE_URL`.
 4. Submit `https://<domain>/sitemap.xml` in Google Search Console.
-
-To go live with payments, swap the test key id/secret for the live ones.
 
 ## Project layout
 

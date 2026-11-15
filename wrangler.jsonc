@@ -21,8 +21,10 @@
   "d1_databases": [
     {
       "binding": "DB",
+      // No database_id on purpose: wrangler finds the "ovenromabakers" database
+      // by name in whichever Cloudflare account it deploys to (and creates it
+      // on the first deploy if it doesn't exist yet).
       "database_name": "ovenromabakers",
-      "database_id": "46ba8f05-b88a-4e21-9c77-61e2d247bf13",
       "migrations_dir": "migrations"
     }
   ],
