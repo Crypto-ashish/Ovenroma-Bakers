@@ -1,5 +1,5 @@
 // Cloudflare Worker entry: security headers, routing, server-rendered pages,
-// JSON APIs, media, sitemap/robots. Static files come from ./public (ASSETS).
+// JSON APIs, sitemap/robots. Static files come from ./public (ASSETS).
 import { json, HttpError, UserError, esc } from "./lib/util.js";
 import { getSettings, listCategories, listProducts, getCategory, getProduct, listTestimonials, listBanners } from "./lib/db.js";
 import { requireAdmin } from "./lib/auth.js";
@@ -14,13 +14,12 @@ import * as admin from "./api/admin.js";
 // Inline style attributes are used, hence 'unsafe-inline' for styles only.
 // Razorpay Checkout needs its script, frames and API.
 function cspFor(env) {
-  const media = (env.MEDIA_PUBLIC_URL || "").replace(/\/+$/, "");
   return [
     "default-src 'self'",
     "script-src 'self' https://checkout.razorpay.com",
     "style-src 'self' 'unsafe-inline'",
     "font-src 'self'",
-    "img-src 'self' blob: https://*.razorpay.com" + (media ? " " + new URL(media).origin : ""),
+    "img-src 'self' https://*.razorpay.com",
     "connect-src 'self' https://api.razorpay.com https://lumberjack.razorpay.com",
     "frame-src https://api.razorpay.com https://checkout.razorpay.com",
     "object-src 'none'",
@@ -217,7 +216,6 @@ async function adminRoute(request, env, url) {
 
   if (p === "/logout" && method === "POST") return admin.logout(request, env);
   if (p === "/dashboard" && method === "GET") return admin.dashboard(request, env);
-  if (p === "/upload" && method === "POST") return admin.upload(request, env);
   if (p === "/products") {
     if (method === "GET") return admin.listProductsAdmin(request, env);
     if (method === "POST") return admin.createProduct(request, env);
@@ -290,7 +288,6 @@ export default {
     const url = new URL(request.url);
     try {
       if (url.pathname.startsWith("/api/")) return secure(await handleApi(request, env, url), url, env, { noindex: true });
-      if (url.pathname.startsWith("/media/")) return secure(await admin.serveMedia(request, env, url.pathname.slice(7)), url, env);
       if (url.pathname === "/sitemap.xml") return secure(await sitemap(env, url), url, env);
       if (url.pathname === "/robots.txt") return secure(robots(env, url), url, env);
 

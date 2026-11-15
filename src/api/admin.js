@@ -55,13 +55,12 @@ const rupeesToPaise = (v, label, { required = false, allowZero = false } = {}) =
   return Math.round(n * 100);
 };
 
+// Photos live in the GitHub repo under public/assets/images/ (no uploads).
 function cleanImageUrl(v, env, label = "image") {
   const t = cleanText(v, { max: 300, label });
   if (!t) return "";
-  const media = (env.MEDIA_PUBLIC_URL || "").replace(/\/+$/, "");
-  if (/^\/(assets\/images|media)\/[A-Za-z0-9/_.-]+\.(webp|jpg|jpeg|png)$/i.test(t)) return t;
-  if (media && t.startsWith(media + "/") && /^[A-Za-z0-9/_.:-]+$/.test(t)) return t;
-  throw new UserError("The " + label + " must be an uploaded image or a /assets/images/ path");
+  if (/^\/assets\/images\/[A-Za-z0-9/_-]+\.(webp|jpg|jpeg|png)$/i.test(t) && !t.includes("..")) return t;
+  throw new UserError("The " + label + " must be a photo from the library (a /assets/images/… path)");
 }
 
 const bool = (v) => (v === true || v === 1 || v === "1" || v === "on" ? 1 : 0);
@@ -409,67 +408,4 @@ export async function putSettings(request, env, key) {
   const value = validate(await readJson(request, 32 * 1024), current[key]);
   await putSetting(env, key, value);
   return json(200, { ok: true, value });
-}
-
-// ------------------------------------------------------------------ uploads
-const MAX_UPLOAD = 3 * 1024 * 1024;
-
-function sniffImage(bytes) {
-  if (bytes.length > 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return { ext: "jpg", type: "image/jpeg" };
-  if (bytes.length > 8 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) return { ext: "png", type: "image/png" };
-  if (bytes.length > 12 && String.fromCharCode(...bytes.slice(0, 4)) === "RIFF" && String.fromCharCode(...bytes.slice(8, 12)) === "WEBP") return { ext: "webp", type: "image/webp" };
-  return null;
-}
-
-// POST /api/admin/upload — multipart with "main" (≤1200px) and "thumb" (400px),
-// both resized + converted to WebP in the browser. Type checked by magic bytes;
-// stored in R2 under a server-generated UUID.
-export async function upload(request, env) {
-  if (!env.MEDIA) return json(503, { error: "Image storage (R2) is not configured" });
-  const declared = parseInt(request.headers.get("Content-Length") || "0", 10);
-  if (declared > 2 * MAX_UPLOAD + 4096) throw new HttpError(413, "Image is too large (max 3 MB)");
-  let form;
-  try {
-    form = await request.formData();
-  } catch {
-    throw new UserError("Please choose an image to upload");
-  }
-  const files = {};
-  for (const part of ["main", "thumb"]) {
-    const f = form.get(part);
-    if (!f || typeof f === "string") throw new UserError("Please choose an image to upload");
-    if (f.size > MAX_UPLOAD) throw new HttpError(413, "Image is too large (max 3 MB)");
-    const bytes = new Uint8Array(await f.arrayBuffer());
-    const kind = sniffImage(bytes);
-    if (!kind) throw new UserError("Only JPEG, PNG or WebP images can be uploaded");
-    files[part] = { bytes, kind };
-  }
-  if (files.main.kind.ext !== files.thumb.kind.ext) throw new UserError("Image formats don't match");
-  const id = crypto.randomUUID();
-  const ext = files.main.kind.ext;
-  const keys = { main: `${id}.${ext}`, thumb: `${id}-400.${ext}` };
-  for (const part of ["main", "thumb"]) {
-    await env.MEDIA.put(keys[part], files[part].bytes, { httpMetadata: { contentType: files[part].kind.type, cacheControl: "public, max-age=31536000, immutable" } });
-    await env.DB.prepare("INSERT INTO media (id, key, content_type, size) VALUES (?1, ?2, ?3, ?4)")
-      .bind(part === "main" ? id : id + "-400", keys[part], files[part].kind.type, files[part].bytes.length).run();
-  }
-  const base = (env.MEDIA_PUBLIC_URL || "").replace(/\/+$/, "") || "/media";
-  return json(201, { ok: true, url: `${base}/${keys.main}`, thumb: `${base}/${keys.thumb}` });
-}
-
-// GET /media/<uuid>[-400].<ext> — serves R2 images with locked-down headers.
-export async function serveMedia(request, env, name) {
-  if (!env.MEDIA || !/^[0-9a-f-]{36}(-400)?\.(webp|jpg|png)$/.test(name)) return new Response("Not found", { status: 404 });
-  const obj = await env.MEDIA.get(name);
-  if (!obj) return new Response("Not found", { status: 404 });
-  const type = { webp: "image/webp", jpg: "image/jpeg", png: "image/png" }[name.split(".").pop()];
-  return new Response(obj.body, {
-    headers: {
-      "Content-Type": type,
-      "Cache-Control": "public, max-age=31536000, immutable",
-      "Content-Security-Policy": "default-src 'none'; sandbox",
-      "Content-Disposition": "inline",
-      "X-Content-Type-Options": "nosniff",
-    },
-  });
 }

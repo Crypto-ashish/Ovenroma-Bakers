@@ -15,11 +15,11 @@ const ENQ_STATUSES = ["new", "contacted", "confirmed", "closed"];
 const toRupees = (p) => (p === null || p === undefined ? "" : String(p / 100));
 
 // ------------------------------------------------------------------ api
-async function call(path, { method = "GET", body, form } = {}) {
+async function call(path, { method = "GET", body } = {}) {
   const headers = {};
   if (method !== "GET") headers["X-CSRF-Token"] = csrf;
   if (body) headers["Content-Type"] = "application/json";
-  const res = await fetch("/api/admin" + path, { method, headers, body: form || (body ? JSON.stringify(body) : undefined), credentials: "same-origin" });
+  const res = await fetch("/api/admin" + path, { method, headers, body: body ? JSON.stringify(body) : undefined, credentials: "same-origin" });
   let data = {};
   try { data = await res.json(); } catch { /* empty */ }
   if (res.status === 401 && path !== "/login") { renderLogin("Your session has expired. Please sign in again."); throw new Error("Please sign in"); }
@@ -142,43 +142,52 @@ function table(head, rows) {
   return `<div class="tbl"><table><thead><tr>${head.map((h) => `<th>${h}</th>`).join("")}</tr></thead><tbody>${rows.map((r) => `<tr>${r.map((c) => `<td>${c}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
 }
 
-// ------------------------------------------------------------------ image upload
-async function toBlob(bitmap, size, type) {
-  const side = Math.min(bitmap.width, bitmap.height);
-  const sx = (bitmap.width - side) / 2;
-  const sy = (bitmap.height - side) / 2;
-  const out = Math.min(size, side);
-  const canvas = document.createElement("canvas");
-  canvas.width = out;
-  canvas.height = out;
-  const ctx = canvas.getContext("2d");
-  ctx.imageSmoothingQuality = "high";
-  ctx.drawImage(bitmap, sx, sy, side, side, 0, 0, out, out);
-  return new Promise((resolve) => canvas.toBlob(resolve, type, 0.85));
+// ------------------------------------------------------------------ photo library
+// Photos are stored in the GitHub repo (public/assets/images). The picker
+// lists them from manifest.json, regenerated on every build.
+let libraryCache = null;
+async function photoLibrary() {
+  if (!libraryCache) {
+    const res = await fetch("/assets/images/manifest.json", { cache: "no-store" });
+    if (!res.ok) throw new Error("Couldn't load the photo library");
+    libraryCache = (await res.json()).images || [];
+  }
+  return libraryCache;
 }
+const thumb = (u) => (u || "").replace(/\.(webp|jpg|jpeg|png)$/i, "-400.$1");
 
-async function uploadImage(file) {
-  if (!/^image\/(jpeg|png|webp)$/.test(file.type)) throw new Error("Please choose a JPEG, PNG or WebP image");
-  const bitmap = await createImageBitmap(file);
-  let main = await toBlob(bitmap, 1000, "image/webp");
-  let type = "image/webp";
-  if (!main || main.type !== "image/webp") { main = await toBlob(bitmap, 1000, "image/jpeg"); type = "image/jpeg"; }
-  const thumb = await toBlob(bitmap, 400, type);
-  const fd = new FormData();
-  const ext = type === "image/webp" ? "webp" : "jpg";
-  fd.append("main", main, "main." + ext);
-  fd.append("thumb", thumb, "thumb." + ext);
-  const res = await call("/upload", { method: "POST", form: fd });
-  return res.url;
+async function pickPhoto(current) {
+  const images = await guard(photoLibrary);
+  if (!images) return null;
+  return new Promise((resolve) => {
+    const dlg = document.createElement("dialog");
+    dlg.className = "picker";
+    dlg.innerHTML = `<div class="picker-head"><h2>Choose a photo</h2><input type="search" placeholder="Search photos…" data-ps aria-label="Search photos"><button type="button" class="btn small" data-pclose>Close</button></div>
+      <p class="muted">To add a new photo, run <code>npm run add-photo -- photo.jpg product-name</code> in the project (or ask your developer), commit it to GitHub and wait for the deploy — it then appears here.</p>
+      <div class="picker-grid">${images.map((u) => `<button type="button" class="pick${u === current ? " on" : ""}" data-pick="${esc(u)}" data-name="${esc(u.split("/").pop().toLowerCase())}"><img src="${esc(thumb(u))}" alt="" loading="lazy"><span>${esc(u.split("/").pop().replace(/\.\w+$/, ""))}</span></button>`).join("")}</div>`;
+    document.body.append(dlg);
+    const done = (v) => { dlg.close(); dlg.remove(); resolve(v); };
+    dlg.addEventListener("click", (e) => {
+      const b = e.target.closest("[data-pick]");
+      if (b) done(b.dataset.pick);
+      else if (e.target.closest("[data-pclose]") || e.target === dlg) done(null);
+    });
+    dlg.addEventListener("cancel", (e) => { e.preventDefault(); done(null); });
+    dlg.querySelector("[data-ps]").addEventListener("input", (e) => {
+      const q = e.target.value.toLowerCase();
+      dlg.querySelectorAll("[data-pick]").forEach((b) => (b.hidden = q && !b.dataset.name.includes(q)));
+    });
+    dlg.showModal();
+  });
 }
 
 function imageField(name, value, label = "Image") {
   return `<div class="field img-field" data-img-field>
     <label>${label}</label>
-    <div class="img-row"><img src="${esc(value || "")}" alt="" data-preview ${value ? "" : "hidden"}>
-      <div class="img-ctrl"><input name="${name}" value="${esc(value || "")}" placeholder="/assets/images/… or upload" data-img-url>
-        <label class="btn small">Upload photo<input type="file" accept="image/jpeg,image/png,image/webp" hidden data-img-file></label>
-        <small class="muted">Square photos look best. Resized to WebP automatically.</small></div></div>
+    <div class="img-row"><img src="${esc(thumb(value))}" alt="" data-preview ${value ? "" : "hidden"}>
+      <div class="img-ctrl"><input name="${name}" value="${esc(value || "")}" placeholder="/assets/images/products/…webp" data-img-url>
+        <button type="button" class="btn small" data-img-pick>Choose photo</button>
+        <small class="muted">Photos come from the website's GitHub repository.</small></div></div>
   </div>`;
 }
 
@@ -186,14 +195,11 @@ function bindImageFields(root) {
   root.querySelectorAll("[data-img-field]").forEach((f) => {
     const url = f.querySelector("[data-img-url]");
     const prev = f.querySelector("[data-preview]");
-    url.addEventListener("input", () => { prev.src = url.value; prev.hidden = !url.value; });
-    f.querySelector("[data-img-file]").addEventListener("change", async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      flash("Uploading…");
-      const u = await guard(() => uploadImage(file));
-      if (u) { url.value = u; prev.src = u; prev.hidden = false; flash("Image uploaded — remember to save"); }
-      e.target.value = "";
+    const show = () => { prev.src = thumb(url.value); prev.hidden = !url.value; };
+    url.addEventListener("input", show);
+    f.querySelector("[data-img-pick]").addEventListener("click", async () => {
+      const u = await pickPhoto(url.value);
+      if (u) { url.value = u; show(); flash("Photo selected — remember to save"); }
     });
   });
 }
@@ -272,7 +278,7 @@ async function editProduct(id, hamper) {
       <div class="field wide"><label>Full description</label><textarea name="description" rows="5">${esc(p.description)}</textarea></div>
       <div class="wide">${imageField("image", p.image, "Main photo")}</div>
       <div class="field wide"><label>Extra gallery photos (one image path per line)</label><textarea name="gallery" rows="2">${esc(p.gallery.join("\n"))}</textarea>
-        <label class="btn small">Upload &amp; add to gallery<input type="file" accept="image/jpeg,image/png,image/webp" hidden data-gallery-file></label></div>
+        <button type="button" class="btn small" data-gallery-pick>+ Add photo from library</button></div>
       <div class="field wide"><label>Variants / options <small class="muted">(e.g. White Flour / Lite Flour, 500g / 1kg) — leave price empty for “on request”</small></label>
         <div data-variants>${p.variants.map((v) => variantRow(v)).join("")}</div><button type="button" class="btn small" data-add-variant>+ Add option</button></div>
       <div class="field wide"><label>What's included (hampers — one item per line)</label><textarea name="includes" rows="3">${esc(p.includes.join("\n"))}</textarea></div>
@@ -293,12 +299,9 @@ async function editProduct(id, hamper) {
   bindImageFields(form);
   form.querySelector("[data-add-variant]").addEventListener("click", () => form.querySelector("[data-variants]").insertAdjacentHTML("beforeend", variantRow({})));
   form.querySelector("[data-variants]").addEventListener("click", (e) => { if (e.target.closest("[data-rm-variant]")) e.target.closest(".variant").remove(); });
-  form.querySelector("[data-gallery-file]").addEventListener("change", async (e) => {
-    const f = e.target.files[0];
-    if (!f) return;
-    const u = await guard(() => uploadImage(f));
+  form.querySelector("[data-gallery-pick]").addEventListener("click", async () => {
+    const u = await pickPhoto("");
     if (u) { form.gallery.value = (form.gallery.value.trim() + "\n" + u).trim(); flash("Added to gallery — remember to save"); }
-    e.target.value = "";
   });
   form.addEventListener("submit", async (e) => {
     e.preventDefault();

@@ -18,6 +18,6 @@ export default defineConfig({
   ],
   webServer: [
     { command: "node tests/e2e/mock-razorpay.mjs", url: "http://127.0.0.1:8799/health", reuseExistingServer: true },
-    { command: `npx wrangler d1 migrations apply ovenromabakers --local && npx wrangler dev --port ${PORT}`, url: `http://localhost:${PORT}/api/health`, reuseExistingServer: true, timeout: 120_000 },
+    { command: `node scripts/gen-image-manifest.mjs && npx wrangler d1 migrations apply ovenromabakers --local && npx wrangler dev --port ${PORT}`, url: `http://localhost:${PORT}/api/health`, reuseExistingServer: true, timeout: 120_000 },
   ],
 });

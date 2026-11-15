@@ -63,22 +63,24 @@ test("admin edits a product, hamper price and WhatsApp number", async ({ page })
   await expect(page.locator(".flash").last()).toContainText("Saved");
 });
 
-test("admin sees orders and bulk enquiries, uploads an image", async ({ page }) => {
+test("admin sees orders and bulk enquiries, picks a photo from the library", async ({ page }) => {
   await adminLogin(page);
   await page.goto("/admin#enquiries");
   await expect(page.locator("details.order").first()).toBeVisible();
   await page.goto("/admin#orders");
   await expect(page.locator("[data-list]")).not.toContainText("Loading");
-  // upload through the product editor
+  // choose a photo from the GitHub photo library in the product editor
   await page.goto("/admin#products");
   await page.locator("tr", { hasText: "Mathi" }).getByText("Edit").click();
-  await page.setInputFiles("[data-img-file]", "public/assets/images/products/mathi.jpg");
-  await expect(page.locator("[data-img-url]")).toHaveValue(/^\/media\/[0-9a-f-]{36}\.webp$/);
-  const url = await page.locator("[data-img-url]").inputValue();
-  const r = await page.request.get(url);
-  expect(r.status()).toBe(200);
-  expect(r.headers()["content-type"]).toBe("image/webp");
-  expect((await page.request.get(url.replace(".webp", "-400.webp"))).status()).toBe(200);
+  await page.click("[data-img-pick]");
+  await page.fill("dialog.picker [data-ps]", "boondi");
+  await page.click('dialog.picker [data-pick="/assets/images/products/boondi.webp"]');
+  await expect(page.locator("[data-img-url]")).toHaveValue("/assets/images/products/boondi.webp");
+  // uploads and arbitrary image URLs are refused server-side
+  const csrf = await page.evaluate(async () => (await (await fetch("/api/admin/session")).json()).csrf);
+  const bad = await page.request.put("/api/admin/products/1", { headers: { "X-CSRF-Token": csrf, Origin: "http://localhost:8787" }, data: { name: "X Test", category: "biscuits-cookies", image: "https://evil.example/x.webp" } });
+  expect(bad.status()).toBe(400);
+  expect((await page.request.post("/api/admin/upload", { headers: { "X-CSRF-Token": csrf, Origin: "http://localhost:8787" } })).status()).toBe(404);
   await page.goto("/admin#dashboard");
   await page.click("[data-logout]");
   await expect(page.locator("h1")).toHaveText("Sign in");
