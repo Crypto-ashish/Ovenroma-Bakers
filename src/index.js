@@ -220,6 +220,7 @@ async function adminRoute(request, env, url) {
 
   if (p === "/logout" && method === "POST") return admin.logout(request, env);
   if (p === "/dashboard" && method === "GET") return admin.dashboard(request, env);
+  if (p === "/payment-check" && method === "GET") return admin.paymentCheck(request, env);
   if (p === "/products") {
     if (method === "GET") return admin.listProductsAdmin(request, env);
     if (method === "POST") return admin.createProduct(request, env);

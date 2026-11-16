@@ -11,7 +11,13 @@ function razorpayBase(env) {
   const b = env.RAZORPAY_API_BASE || "";
   return /^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/.test(b) ? b : "https://api.razorpay.com";
 }
-export const paymentsConfigured = (env) => Boolean(env.RAZORPAY_KEY_ID && env.RAZORPAY_KEY_SECRET);
+// Keys are trimmed: a secret pasted with a trailing space or newline in the
+// dashboard would otherwise fail Razorpay authentication.
+export const rzpKeyId = (env) => String(env.RAZORPAY_KEY_ID || "").trim();
+export const rzpSecret = (env) => String(env.RAZORPAY_KEY_SECRET || "").trim();
+export const rzpAuthHeader = (env) => "Basic " + btoa(rzpKeyId(env) + ":" + rzpSecret(env));
+export { razorpayBase };
+export const paymentsConfigured = (env) => Boolean(rzpKeyId(env) && rzpSecret(env));
 
 async function quoteFor(env, items) {
   if (!Array.isArray(items)) throw new UserError("Your cart is empty");
@@ -79,10 +85,9 @@ export async function createOrder(request, env) {
   const ref = makeRef("OVR");
   await insertOrder(env, { ref, status: "created", method: "razorpay", customer, quote });
 
-  const auth = btoa(env.RAZORPAY_KEY_ID + ":" + env.RAZORPAY_KEY_SECRET);
   const res = await fetch(razorpayBase(env) + "/v1/orders", {
     method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: "Basic " + auth },
+    headers: { "Content-Type": "application/json", Authorization: rzpAuthHeader(env) },
     body: JSON.stringify({
       amount: quote.total_paise,
       currency: "INR",
@@ -114,7 +119,7 @@ export async function createOrder(request, env) {
     order_id: order.id,
     amount: order.amount,
     currency: order.currency,
-    key_id: env.RAZORPAY_KEY_ID,
+    key_id: rzpKeyId(env),
     prefill: { name: customer.name, contact: customer.phone, email: customer.email },
   });
 }
@@ -125,7 +130,7 @@ const REF_RE = /^OVR-[A-Z0-9]{4,12}-[A-Z0-9]{12}$/;
 // POST /api/checkout/verify — HMAC-SHA256(order_id|payment_id) with the key
 // secret, compared in constant time, and the order id must match our record.
 export async function verifyPayment(request, env) {
-  if (!env.RAZORPAY_KEY_SECRET) return json(503, { error: "Payment gateway is not configured" });
+  if (!rzpSecret(env)) return json(503, { error: "Payment gateway is not configured" });
   const body = await readJson(request);
   const { ref, razorpay_order_id, razorpay_payment_id, razorpay_signature } = body;
   if (typeof ref !== "string" || !REF_RE.test(ref) || !ID_RE.test(razorpay_order_id || "") || !ID_RE.test(razorpay_payment_id || "") ||
@@ -136,7 +141,7 @@ export async function verifyPayment(request, env) {
   if (!order || order.razorpay_order_id !== razorpay_order_id) {
     return json(400, { verified: false, error: "Payment could not be verified" });
   }
-  const expected = await hmacSha256Hex(env.RAZORPAY_KEY_SECRET, razorpay_order_id + "|" + razorpay_payment_id);
+  const expected = await hmacSha256Hex(rzpSecret(env), razorpay_order_id + "|" + razorpay_payment_id);
   if (!timingSafeEqual(expected, razorpay_signature.toLowerCase())) {
     return json(400, { verified: false, error: "Payment could not be verified" });
   }

@@ -125,6 +125,10 @@ async function viewDashboard() {
   const ec = by(d.enquiries, "n");
   $view().innerHTML = `<h1>Dashboard</h1>
     ${d.warnings.map((w) => `<p class="warn">${esc(w)}</p>`).join("")}
+    <section class="card pay-check"><h2>Online payments (Razorpay)</h2>
+      <p class="muted">Checks that Razorpay accepts the key id and secret saved in Cloudflare. Run it after changing the secret.</p>
+      <button type="button" class="btn" data-pay-check>Check Razorpay connection</button>
+      <p data-pay-result role="status"></p></section>
     <div class="stats">
       <div class="stat"><span>Paid orders</span><strong>${oc.paid || 0}</strong><small>${rupees(ot.paid || 0)}</small></div>
       <div class="stat"><span>WhatsApp orders</span><strong>${oc.whatsapp || 0}</strong><small>${rupees(ot.whatsapp || 0)}</small></div>
@@ -136,6 +140,20 @@ async function viewDashboard() {
       <section class="card"><h2>Recent enquiries</h2>${table(["Type", "Name", "Value", "Status"], d.recentEnquiries.map((e) => [esc(e.type), esc(e.name), e.total_paise ? rupees(e.total_paise) : "—", `<span class="pill s-${esc(e.status)}">${esc(e.status)}</span>`]))}<a href="#enquiries">All enquiries →</a></section>
     </div>`;
 }
+
+document.addEventListener("click", async (e) => {
+  const btn = e.target.closest("[data-pay-check]");
+  if (!btn) return;
+  const out = document.querySelector("[data-pay-result]");
+  btn.disabled = true;
+  out.className = "";
+  out.textContent = "Checking with Razorpay…";
+  const r = await guard(() => call("/payment-check"));
+  btn.disabled = false;
+  if (!r) { out.textContent = ""; return; }
+  out.className = r.ok ? "ok" : "err";
+  out.textContent = (r.ok ? "✓ " : "✗ ") + r.message + (r.key_id ? " — Key id: " + r.key_id : "");
+});
 
 function table(head, rows) {
   if (!rows.length) return `<p class="muted">Nothing yet.</p>`;

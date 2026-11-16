@@ -81,7 +81,10 @@ test("admin sees orders and bulk enquiries, picks a photo from the library", asy
   const bad = await page.request.put("/api/admin/products/1", { headers: { "X-CSRF-Token": csrf, Origin: "http://localhost:8787" }, data: { name: "X Test", category: "biscuits-cookies", image: "https://evil.example/x.webp" } });
   expect(bad.status()).toBe(400);
   expect((await page.request.post("/api/admin/upload", { headers: { "X-CSRF-Token": csrf, Origin: "http://localhost:8787" } })).status()).toBe(404);
+  // Razorpay connection check (against the local mock with the test keys)
   await page.goto("/admin#dashboard");
+  await page.click("[data-pay-check]");
+  await expect(page.locator("[data-pay-result]")).toContainText("Razorpay accepted the key id and secret");
   await page.click("[data-logout]");
   await expect(page.locator("h1")).toHaveText("Sign in");
 });

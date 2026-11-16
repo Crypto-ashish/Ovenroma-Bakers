@@ -6,6 +6,7 @@ import {
   verifyPassword, createSession, destroySession, getSession, loginThrottled, recordFailedLogin, clearFailedLogins, sessionCookie,
 } from "../lib/auth.js";
 import { DEFAULT_SEO } from "../lib/seo-defaults.js";
+import { rzpKeyId, rzpSecret, rzpAuthHeader, razorpayBase } from "./public.js";
 
 const ORDER_STATUSES = ["created", "paid", "failed", "whatsapp", "cancelled", "fulfilled"];
 const ENQUIRY_STATUSES = ["new", "contacted", "confirmed", "closed"];
@@ -86,8 +87,8 @@ export async function dashboard(request, env) {
     recentEnquiries: recentEnquiries.results,
     warnings: [
       !settings.store.whatsapp && "WhatsApp number is not set — WhatsApp buttons open WhatsApp without a recipient. Set it in Settings.",
-      !(env.RAZORPAY_KEY_ID && env.RAZORPAY_KEY_SECRET) && "Razorpay keys are not configured — online payment is disabled (WhatsApp ordering still works).",
-      String(env.RAZORPAY_KEY_ID || "").startsWith("rzp_test_") && "Razorpay is in TEST mode — no real money is collected.",
+      !(rzpKeyId(env) && rzpSecret(env)) && "Razorpay keys are not configured — online payment is disabled (WhatsApp ordering still works).",
+      rzpKeyId(env).startsWith("rzp_test_") && "Razorpay is in TEST mode — no real money is collected.",
     ].filter(Boolean),
   });
 }
@@ -408,4 +409,31 @@ export async function putSettings(request, env, key) {
   const value = validate(await readJson(request, 32 * 1024), current[key]);
   await putSetting(env, key, value);
   return json(200, { ok: true, value });
+}
+
+// GET /api/admin/payment-check — asks Razorpay whether the configured key id
+// + secret are accepted, and explains the result in plain words. Never
+// returns key material.
+export async function paymentCheck(request, env) {
+  const keyId = rzpKeyId(env);
+  const secret = rzpSecret(env);
+  const mode = keyId.startsWith("rzp_live_") ? "live" : keyId.startsWith("rzp_test_") ? "test" : "unknown";
+  const base = { key_id: keyId, mode, secret_set: Boolean(secret) };
+  if (!keyId) return json(200, { ...base, ok: false, message: "RAZORPAY_KEY_ID is not set." });
+  if (!/^rzp_(live|test)_[A-Za-z0-9]{8,}$/.test(keyId)) return json(200, { ...base, ok: false, message: "RAZORPAY_KEY_ID doesn't look like a Razorpay key id (rzp_live_… or rzp_test_…)." });
+  if (!secret) return json(200, { ...base, ok: false, message: "RAZORPAY_KEY_SECRET is not set. Add it in Cloudflare → Worker → Settings → Variables and Secrets (type: Secret)." });
+  let res;
+  try {
+    res = await fetch(razorpayBase(env) + "/v1/orders?count=1", { headers: { Authorization: rzpAuthHeader(env) } });
+  } catch {
+    return json(200, { ...base, ok: false, message: "Couldn't reach Razorpay from the server. Try again in a minute." });
+  }
+  if (res.ok) return json(200, { ...base, ok: true, message: "Razorpay accepted the key id and secret (" + mode + " mode). Online payments should work." });
+  let detail = "";
+  try { detail = ((await res.json()).error || {}).description || ""; } catch { /* not JSON */ }
+  detail = String(detail).replace(/[<>]/g, "").slice(0, 200);
+  const message = res.status === 401
+    ? "Razorpay rejected the key: RAZORPAY_KEY_SECRET doesn't match RAZORPAY_KEY_ID " + keyId + " (wrong or old secret, a test secret with a live key, or the key was regenerated). Paste the correct secret for this key id."
+    : "Razorpay returned an error (HTTP " + res.status + ")" + (detail ? ": " + detail : "") + ".";
+  return json(200, { ...base, ok: false, status: res.status, message });
 }

@@ -8,12 +8,14 @@ const expectedAuth = "Basic " + Buffer.from((process.env.RZP_KEY_ID || "rzp_test
 
 createServer((req, res) => {
   if (req.method === "GET" && req.url === "/health") { res.end("ok"); return; }
-  if (req.method !== "POST" || req.url !== "/v1/orders") { res.writeHead(404); res.end(); return; }
+  const isList = req.method === "GET" && req.url.startsWith("/v1/orders");
+  if (!isList && (req.method !== "POST" || req.url !== "/v1/orders")) { res.writeHead(404); res.end(); return; }
   if (req.headers.authorization !== expectedAuth) {
     res.writeHead(401, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ error: { code: "BAD_REQUEST_ERROR", description: "Authentication failed" } }));
     return;
   }
+  if (isList) { res.writeHead(200, { "Content-Type": "application/json" }); res.end(JSON.stringify({ entity: "collection", count: 0, items: [] })); return; }
   let body = "";
   req.on("data", (c) => (body += c));
   req.on("end", () => {

@@ -99,3 +99,5 @@ input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--choc); }
 .pick { border: 2px solid transparent; border-radius: 12px; background: #fff; padding: 4px; cursor: pointer; display: flex; flex-direction: column; gap: 4px; font: inherit; font-size: .74rem; color: var(--muted); text-align: center; }
 .pick img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; }
 .pick:hover, .pick.on { border-color: var(--caramel); }
+.pay-check .ok { color: var(--ok); font-weight: 700; }
+.pay-check .err { color: var(--danger); font-weight: 700; }
