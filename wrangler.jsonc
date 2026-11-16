@@ -5,12 +5,16 @@
   // Configuration lives in the Cloudflare dashboard (Worker → Settings →
   // Variables and Secrets) and is kept across deploys (keep_vars):
   //   Secrets:   ADMIN_PASSWORD_HASH, RAZORPAY_KEY_SECRET, RAZORPAY_WEBHOOK_SECRET
-  //   Variables: RAZORPAY_KEY_ID (rzp_test_… first), SITE_URL (e.g. https://www.example.com)
+  //   Variables: SITE_URL (e.g. https://www.example.com)
   // Nothing set = online payment off (WhatsApp ordering still works) and the
   // site uses its own address for canonical links.
   "keep_vars": true,
   "vars": {
-    "ADMIN_USERNAME": "admin"
+    "ADMIN_USERNAME": "admin",
+    // Publishable Razorpay key id (sent to every browser at checkout, not a
+    // secret) — the same LIVE Razorpay account as glutenfreedelhi.com.
+    // Its matching RAZORPAY_KEY_SECRET must be a dashboard Secret, never here.
+    "RAZORPAY_KEY_ID": "rzp_live_TyKq7VWeqBgvDY"
   },
   "assets": {
     "directory": "./public",

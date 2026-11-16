@@ -88,6 +88,9 @@ export async function createOrder(request, env) {
       currency: "INR",
       receipt: ref,
       notes: {
+        // The Razorpay account is shared with Gluten Free Delhi: label the shop.
+        store: "Ovenroma Bakers",
+        channel: "ovenroma-shop",
         order_ref: ref,
         customer_name: customer.name,
         phone: customer.phone,

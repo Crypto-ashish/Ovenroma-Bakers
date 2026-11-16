@@ -97,9 +97,12 @@ build command `npm ci`, deploy command `npm run deploy`.
 
 Then (once):
 1. Worker → Settings → Variables and Secrets → add **Secret** `ADMIN_PASSWORD_HASH`
-   (create with `npm run hash-password -- 'your password'`). Optional: `RAZORPAY_KEY_SECRET` (test secret first)
-   and `RAZORPAY_KEY_ID` (`rzp_test_…`) as a plain variable, `RAZORPAY_WEBHOOK_SECRET`.
-   These are kept across deploys (`keep_vars`), so set them in the dashboard, not in `wrangler.jsonc`.
+   (create with `npm run hash-password -- 'your password'`), and **Secret** `RAZORPAY_KEY_SECRET`.
+   Payments use the **same live Razorpay account as Gluten Free Delhi**: `RAZORPAY_KEY_ID` is
+   `rzp_live_TyKq7VWeqBgvDY` (set in `wrangler.jsonc`), so `RAZORPAY_KEY_SECRET` must be that key's secret.
+   Orders are labelled `store: Ovenroma Bakers` and receipts start with `OVR-` in the Razorpay dashboard.
+   Optional: `RAZORPAY_WEBHOOK_SECRET` for a webhook to `/api/razorpay-webhook`.
+   Secrets and dashboard variables are kept across deploys (`keep_vars`).
 2. In `/admin` → Settings, set the WhatsApp number and prices.
 3. Custom domain later: Worker → Settings → Domains & Routes → Add custom domain, then add a variable `SITE_URL` (e.g. `https://www.example.com`).
 4. Submit `https://<domain>/sitemap.xml` in Google Search Console.
